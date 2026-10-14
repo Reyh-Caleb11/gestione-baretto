@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="it">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#10231f">
+	<title>Admin | Gestione Baretto</title>
+	<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+	<header class="topbar">
+		<a class="brand" href="/" aria-label="Gestione Baretto, home">
+			<span class="brand-mark" aria-hidden="true">B</span>
+			<span><strong>Gestione Baretto</strong><small>Area amministrazione</small></span>
+		</a>
+		<div id="account-bar" class="account-bar" hidden>
+			<span class="account-indicator" aria-hidden="true"></span>
+			<span id="account-name">Admin</span>
+			<button id="logout-button" class="button button-quiet" type="button">Esci</button>
+		</div>
+	</header>
+
+	<main>
+		<section id="login-view" class="login-layout" aria-labelledby="login-title" hidden>
+			<div class="login-intro">
+				<p class="eyebrow">Pannello di controllo</p>
+				<h1>Benvenuto nel tuo<br><span>baretto.</span></h1>
+				<p>Accedi all’area Admin per gestire il personale, i prodotti e gli ordini.</p>
+			</div>
+			<form id="login-form" class="panel login-panel">
+				<div class="panel-heading">
+					<p class="eyebrow">Accesso riservato</p>
+					<h2 id="login-title">Accedi</h2>
+					<p>Inserisci le credenziali Admin per continuare.</p>
+				</div>
+				<label class="field">
+					<span>Nome utente</span>
+					<input name="username" autocomplete="username" required maxlength="100">
+				</label>
+				<label class="field">
+					<span>Password</span>
+					<input name="password" type="password" autocomplete="current-password" required>
+				</label>
+				<p id="login-message" class="form-message" role="alert" aria-live="polite"></p>
+				<button class="button button-primary button-wide" type="submit">Accedi al pannello <span aria-hidden="true">→</span></button>
+			</form>
+		</section>
+
+		<section id="dashboard-view" hidden aria-labelledby="dashboard-title">
+			<div class="dashboard-heading">
+				<div>
+					<p class="eyebrow">Panoramica</p>
+					<h1 id="dashboard-title">Pannello di controllo</h1>
+					<p class="muted">Aggiungi e consulta i dati del tuo locale.</p>
+				</div>
+				<div class="live-status"><span class="live-dot" aria-hidden="true"></span> Database connesso</div>
+			</div>
+
+			<div class="summary-grid" aria-label="Riepilogo dei record">
+				<article class="summary-card"><span class="summary-icon icon-staff" aria-hidden="true">P</span><div><p>Personale</p><strong id="staff-count">0</strong></div></article>
+				<article class="summary-card"><span class="summary-icon icon-products" aria-hidden="true">€</span><div><p>Prodotti</p><strong id="product-count">0</strong></div></article>
+				<article class="summary-card"><span class="summary-icon icon-orders" aria-hidden="true">#</span><div><p>Ordini</p><strong id="order-count">0</strong></div></article>
+			</div>
+
+			<div id="dashboard-message" class="notice" role="status" aria-live="polite" hidden></div>
+
+			<div class="section-heading">
+				<div><p class="eyebrow">Gestione dati</p><h2>Inserisci un nuovo record</h2></div>
+				<span class="section-hint">I campi con * sono obbligatori</span>
+			</div>
+
+			<div class="form-grid">
+				<section class="panel">
+					<div class="panel-heading">
+						<span class="panel-icon icon-staff" aria-hidden="true">P</span>
+						<div><h3>Nuovo membro del personale</h3><p>Aggiungi una persona allo staff.</p></div>
+					</div>
+					<form id="staff-form" data-endpoint="/api/admin/personale">
+						<div class="two-fields">
+							<label class="field"><span>Nome *</span><input name="nome" required maxlength="100" autocomplete="given-name"></label>
+							<label class="field"><span>Cognome *</span><input name="cognome" required maxlength="100" autocomplete="family-name"></label>
+						</div>
+						<label class="field"><span>Ruolo *</span><input name="ruolo" required maxlength="100" placeholder="Es. Barista"></label>
+						<label class="field"><span>Email <small>(facoltativa)</small></span><input name="email" type="email" maxlength="255" autocomplete="email"></label>
+						<div class="form-footer"><p class="form-message" aria-live="polite"></p><button class="button button-primary" type="submit">Aggiungi persona</button></div>
+					</form>
+				</section>
+
+				<section class="panel">
+					<div class="panel-heading">
+						<span class="panel-icon icon-products" aria-hidden="true">€</span>
+						<div><h3>Nuovo prodotto</h3><p>Registra un articolo a listino.</p></div>
+					</div>
+					<form id="product-form" data-endpoint="/api/admin/prodotti">
+						<label class="field"><span>Nome prodotto *</span><input name="nome" required maxlength="150" placeholder="Es. Cappuccino"></label>
+						<label class="field"><span>Descrizione <small>(facoltativa)</small></span><textarea name="descrizione" rows="2" maxlength="60000" placeholder="Ingredienti o dettagli del prodotto"></textarea></label>
+						<div class="two-fields">
+							<label class="field"><span>Prezzo (€) *</span><input name="prezzo" type="number" required min="0" max="99999999.99" step="0.01" placeholder="0,00"></label>
+							<label class="field"><span>Quantità a magazzino *</span><input name="quantita" type="number" required min="0" max="4294967295" step="1" value="0"></label>
+						</div>
+						<div class="form-footer"><p class="form-message" aria-live="polite"></p><button class="button button-primary" type="submit">Aggiungi prodotto</button></div>
+					</form>
+				</section>
+
+				<section class="panel">
+					<div class="panel-heading">
+						<span class="panel-icon icon-orders" aria-hidden="true">#</span>
+						<div><h3>Nuovo ordine</h3><p>Collega l’ordine al prodotto e all’addetto.</p></div>
+					</div>
+					<form id="order-form" data-endpoint="/api/admin/ordini">
+						<label class="field"><span>Prodotto *</span><select name="prodotto_id" required><option value="">Seleziona un prodotto</option></select></label>
+						<label class="field"><span>Addetto *</span><select name="personale_id" required><option value="">Seleziona una persona</option></select></label>
+						<div class="two-fields">
+							<label class="field"><span>Quantità *</span><input name="quantita" type="number" required min="1" max="4294967295" step="1" value="1"></label>
+							<label class="field"><span>Stato ordine *</span><select name="stato" required><option value="in_attesa">In attesa</option><option value="completato">Completato</option><option value="annullato">Annullato</option></select></label>
+						</div>
+						<p id="order-price" class="order-price">Il prezzo unitario viene preso dal listino.</p>
+						<div class="form-footer"><p class="form-message" aria-live="polite"></p><button class="button button-primary" type="submit">Registra ordine</button></div>
+					</form>
+				</section>
+			</div>
+
+			<section class="recent-section" aria-labelledby="recent-title">
+				<div class="section-heading"><div><p class="eyebrow">Attività recente</p><h2 id="recent-title">Ultimi ordini</h2></div><span class="section-hint">Fino a 50 ordini recenti</span></div>
+				<div class="panel table-panel">
+					<div class="table-scroll">
+						<table>
+							<thead><tr><th>Prodotto</th><th>Addetto</th><th>Quantità</th><th>Prezzo unitario</th><th>Stato</th></tr></thead>
+							<tbody id="orders-table"><tr><td class="empty-state" colspan="5">Nessun ordine registrato.</td></tr></tbody>
+						</table>
+					</div>
+				</div>
+			</section>
+		</section>
+
+		<div id="loading-view" class="loading-view"><span class="spinner" aria-hidden="true"></span><span>Verifica della sessione…</span></div>
+	</main>
+	<footer class="page-footer">Gestione Baretto <span>·</span> Area amministrazione</footer>
+	<script src="/app.js" defer></script>
+</body>
+</html>
