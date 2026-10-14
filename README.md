@@ -5,7 +5,7 @@ Applicazione per la gestione di un bar. Il progetto usa Node.js, Express e MySQL
 ## Requisiti
 
 - Node.js 20.6 o successivo e npm
-- Docker con Docker Compose v2
+- Docker con Docker Compose v2.17 o successivo
 
 ## Configurazione
 
@@ -30,7 +30,13 @@ PORT=3000
 
 ## Avvio
 
-Avvia il database:
+Per avviare insieme il database e l'applicazione, attendendo che MySQL sia pronto:
+
+```sh
+npm run dev
+```
+
+In alternativa, puoi avviare i componenti separatamente. Avvia il database:
 
 ```sh
 docker compose up -d mysql
@@ -54,7 +60,7 @@ All'avvio vengono create o verificate le tabelle `prodotti`, `personale` e `ordi
 curl http://localhost:3000/api/health
 ```
 
-La risposta attesa è `{"status":"ok","database":"connected"}`. Ferma Express con `Ctrl+C`, poi, se necessario, ferma il database senza eliminare i dati:
+La risposta attesa è `{"status":"ok","database":"connected"}`. La pagina pubblica con il solo avanzamento degli ordini è disponibile su `http://localhost:3000/ordini.html` e si aggiorna automaticamente. Ferma Express con `Ctrl+C`, poi, se necessario, ferma il database senza eliminare i dati:
 
 ```sh
 docker compose down
@@ -67,7 +73,3 @@ Per controllare direttamente le tabelle del database:
 ```bash
 docker exec -it mysql-dev mysql -uutente -ppassword -Dbaretto
 ```
-
-## Stato dell'applicazione
-
-Al momento `npm start` esegue solo l'inizializzazione del database e termina; il server HTTP/API e l'interfaccia web non sono ancora implementati.

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="it">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#10231f">
+	<meta name="robots" content="noindex">
+	<title>Stato ordini | Gestione Baretto</title>
+	<link rel="stylesheet" href="/ordini.css">
+</head>
+<body>
+	<header class="topbar">
+		<a class="brand" href="/" aria-label="Gestione Baretto, pannello admin">
+			<span class="brand-mark" aria-hidden="true">B</span>
+			<span><strong>Gestione Baretto</strong><small>Stato ordini</small></span>
+		</a>
+		<p id="refresh-status" class="refresh-status" role="status" aria-live="polite">Caricamento ordini…</p>
+	</header>
+
+	<main>
+		<div class="page-heading">
+			<p class="eyebrow">Aggiornamento automatico</p>
+			<h1>Stato degli ordini</h1>
+		</div>
+		<p id="orders-message" class="message" role="status" aria-live="polite"></p>
+		<section id="orders-board" class="orders-board" aria-label="Ordini per stato">
+			<section class="status-column status-pending" aria-labelledby="pending-title">
+				<header class="column-heading">
+					<h2 id="pending-title">In attesa</h2>
+					<span id="pending-count" class="count">0</span>
+				</header>
+				<div id="pending-orders" class="order-list"></div>
+			</section>
+			<section class="status-column status-completed" aria-labelledby="completed-title">
+				<header class="column-heading">
+					<h2 id="completed-title">Completati</h2>
+					<span id="completed-count" class="count">0</span>
+				</header>
+				<div id="completed-orders" class="order-list"></div>
+			</section>
+			<section class="status-column status-cancelled" aria-labelledby="cancelled-title">
+				<header class="column-heading">
+					<h2 id="cancelled-title">Annullati</h2>
+					<span id="cancelled-count" class="count">0</span>
+				</header>
+				<div id="cancelled-orders" class="order-list"></div>
+			</section>
+		</section>
+	</main>
+	<footer class="page-footer">Gestione Baretto · Stato degli ordini</footer>
+	<script src="/ordini.js" defer></script>
+</body>
+</html>

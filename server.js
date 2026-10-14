@@ -292,6 +292,17 @@ app.get('/health', async (request, response) => {
 	}
 });
 
+app.get('/api/orders/progress', async (request, response) => {
+	const [orders] = await pool.query(`
+		SELECT id, stato
+		FROM ordini
+		ORDER BY creato_il DESC, id DESC
+		LIMIT 50
+	`);
+	response.setHeader('Cache-Control', 'no-store');
+	response.json({ orders });
+});
+
 app.get('/api/auth/session', (request, response) => {
 	const session = readSession(request);
 	if (!session) return response.json({ authenticated: false });
