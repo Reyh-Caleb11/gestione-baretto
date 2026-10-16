@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="it">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#173b32">
+	<meta name="description" content="Consulta il menu e invia il tuo ordine self-service.">
+	<title>Menu | Gestione Baretto</title>
+	<link rel="stylesheet" href="/menu.css">
+</head>
+<body>
+	<header class="menu-topbar">
+		<a class="brand" href="/" aria-label="Gestione Baretto, home">
+			<span class="brand-mark" aria-hidden="true">B</span>
+			<span><strong>Gestione Baretto</strong><small>Menu self-service</small></span>
+		</a>
+		<a class="orders-link" href="/ordini.html">Segui un ordine <span aria-hidden="true">↗</span></a>
+	</header>
+
+	<main>
+		<section class="menu-intro" aria-labelledby="menu-title">
+			<div>
+				<p class="eyebrow">Fatto al momento, pronto al ritiro</p>
+				<h1 id="menu-title">Una pausa<br><em>come piace a te.</em></h1>
+				<p class="intro-copy">Scegli dal menu, invia l’ordine e paga al banco quando ritiri.</p>
+			</div>
+			<div class="intro-note"><span class="note-mark" aria-hidden="true">✳</span><span>Ordina in pochi tocchi.<br><strong>Ci pensiamo noi.</strong></span></div>
+		</section>
+
+		<div id="menu-message" class="menu-message" role="status" aria-live="polite" hidden></div>
+		<div class="order-confirmation" id="order-confirmation" role="status" aria-live="polite" hidden>
+			<span class="confirmation-check" aria-hidden="true">✓</span>
+			<div><strong>Ordine inviato</strong><p id="confirmation-detail"></p></div>
+			<a href="/ordini.html">Vedi stato</a>
+		</div>
+
+		<div class="ordering-layout">
+			<section class="catalog" aria-labelledby="catalog-title">
+				<div class="catalog-heading">
+					<div><p class="eyebrow">Il menu</p><h2 id="catalog-title">Scegli qualcosa di buono</h2></div>
+					<span id="product-count" class="product-count" aria-live="polite"></span>
+				</div>
+				<div id="product-grid" class="product-grid" aria-live="polite"></div>
+			</section>
+
+			<aside class="cart-panel" aria-labelledby="cart-title">
+				<div class="cart-heading"><div><p class="eyebrow">Il tuo ordine</p><h2 id="cart-title">Carrello <span id="cart-count">0</span></h2></div><span class="bag-icon" aria-hidden="true">▱</span></div>
+				<div id="cart-items" class="cart-items"><p class="cart-empty">Il carrello è vuoto.<br>Aggiungi qualcosa dal menu.</p></div>
+				<div class="cart-total"><span>Totale</span><strong id="cart-total">€ 0,00</strong></div>
+
+				<form id="checkout-form">
+					<label class="customer-field" for="customer-name">Il tuo nome</label>
+					<input id="customer-name" name="nome_cliente" autocomplete="given-name" maxlength="100" placeholder="Come ti chiami?" required>
+					<fieldset class="payment-options">
+						<legend>Paghi al ritiro</legend>
+						<label class="payment-choice"><input type="radio" name="metodo_pagamento" value="contanti" checked><span class="payment-symbol" aria-hidden="true">€</span><span>Contanti</span></label>
+						<label class="payment-choice"><input type="radio" name="metodo_pagamento" value="carta"><span class="payment-symbol" aria-hidden="true">▭</span><span>Carta</span></label>
+					</fieldset>
+					<p id="checkout-message" class="checkout-message" role="alert" aria-live="polite"></p>
+					<button id="submit-order" class="submit-order" type="submit" disabled>Invia ordine <span aria-hidden="true">→</span></button>
+				</form>
+				<p class="payment-note">Il pagamento avviene al banco, al momento del ritiro.</p>
+			</aside>
+		</div>
+	</main>
+	<footer class="menu-footer"><span>Gestione Baretto</span><span>Ordine self-service</span></footer>
+	<script src="/menu.js" defer></script>
+</body>
+</html>

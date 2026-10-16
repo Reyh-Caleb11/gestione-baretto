@@ -13,7 +13,10 @@
 			<span class="brand-mark" aria-hidden="true">B</span>
 			<span><strong>Gestione Baretto</strong><small>Area amministrazione</small></span>
 		</a>
-		<a class="button button-quiet" href="/ordini.html">Stato ordini</a>
+		<div class="account-bar">
+			<a class="button button-quiet" href="/menu.html">Menu clienti</a>
+			<a class="button button-quiet" href="/ordini.html">Stato ordini</a>
+		</div>
 		<div id="account-bar" class="account-bar" hidden>
 			<span class="account-indicator" aria-hidden="true"></span>
 			<span id="account-name">Admin</span>
@@ -95,6 +98,7 @@
 					<form id="product-form" data-endpoint="/api/admin/prodotti">
 						<label class="field"><span>Nome prodotto *</span><input name="nome" required maxlength="150" placeholder="Es. Cappuccino"></label>
 						<label class="field"><span>Descrizione <small>(facoltativa)</small></span><textarea name="descrizione" rows="2" maxlength="60000" placeholder="Ingredienti o dettagli del prodotto"></textarea></label>
+						<label class="field"><span>URL immagine <small>(facoltativo, HTTP o HTTPS)</small></span><input name="immagine_url" type="url" maxlength="2048" placeholder="https://..." autocomplete="url"></label>
 						<div class="two-fields">
 							<label class="field"><span>Prezzo (€) *</span><input name="prezzo" type="number" required min="0" max="99999999.99" step="0.01" placeholder="0,00"></label>
 							<label class="field"><span>Quantità a magazzino *</span><input name="quantita" type="number" required min="0" max="4294967295" step="1" value="0"></label>

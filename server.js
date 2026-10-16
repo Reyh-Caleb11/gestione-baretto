@@ -76,12 +76,18 @@ async function initializeDatabase() {
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 			nome VARCHAR(150) NOT NULL,
 			descrizione TEXT,
+			immagine_url VARCHAR(2048),
 			prezzo DECIMAL(10, 2) NOT NULL,
 			quantita INT UNSIGNED NOT NULL DEFAULT 0,
 			creato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			CONSTRAINT chk_prodotti_prezzo CHECK (prezzo >= 0)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 	`);
+
+	const [productColumns] = await pool.query('SHOW COLUMNS FROM prodotti LIKE \'immagine_url\'');
+	if (productColumns.length === 0) {
+		await pool.query('ALTER TABLE prodotti ADD COLUMN immagine_url VARCHAR(2048) NULL AFTER descrizione');
+	}
 
 	await pool.query(`
 		CREATE TABLE IF NOT EXISTS ordini (
@@ -98,6 +104,33 @@ async function initializeDatabase() {
 				REFERENCES prodotti (id) ON UPDATE CASCADE ON DELETE RESTRICT,
 			CONSTRAINT fk_ordini_personale FOREIGN KEY (personale_id)
 				REFERENCES personale (id) ON UPDATE CASCADE ON DELETE RESTRICT
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+	`);
+
+	await pool.query(`
+		CREATE TABLE IF NOT EXISTS ordini_clienti (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			nome_cliente VARCHAR(100) NOT NULL,
+			metodo_pagamento ENUM('contanti', 'carta') NOT NULL,
+			totale DECIMAL(10, 2) NOT NULL,
+			stato ENUM('in_attesa', 'completato', 'annullato') NOT NULL DEFAULT 'in_attesa',
+			creato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			CONSTRAINT chk_ordini_clienti_totale CHECK (totale >= 0)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+	`);
+
+	await pool.query(`
+		CREATE TABLE IF NOT EXISTS righe_ordini_clienti (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			ordine_id BIGINT UNSIGNED NOT NULL,
+			prodotto_id BIGINT UNSIGNED NOT NULL,
+			quantita INT UNSIGNED NOT NULL,
+			prezzo_unitario DECIMAL(10, 2) NOT NULL,
+			CONSTRAINT chk_righe_ordini_quantita CHECK (quantita > 0),
+			CONSTRAINT fk_righe_ordini_ordine FOREIGN KEY (ordine_id)
+				REFERENCES ordini_clienti (id) ON UPDATE CASCADE ON DELETE CASCADE,
+			CONSTRAINT fk_righe_ordini_prodotto FOREIGN KEY (prodotto_id)
+				REFERENCES prodotti (id) ON UPDATE CASCADE ON DELETE RESTRICT
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 	`);
 
@@ -295,12 +328,88 @@ app.get('/health', async (request, response) => {
 app.get('/api/orders/progress', async (request, response) => {
 	const [orders] = await pool.query(`
 		SELECT id, stato
-		FROM ordini
+		FROM (
+			SELECT CAST(id AS CHAR) AS id, stato, creato_il FROM ordini
+			UNION ALL
+			SELECT CONCAT('S-', id) AS id, stato, creato_il FROM ordini_clienti
+		) AS tutti_ordini
 		ORDER BY creato_il DESC, id DESC
 		LIMIT 50
 	`);
 	response.setHeader('Cache-Control', 'no-store');
 	response.json({ orders });
+});
+
+app.get('/api/menu/products', async (request, response) => {
+	const [products] = await pool.query(`
+		SELECT id, nome, descrizione, immagine_url, prezzo, quantita
+		FROM prodotti
+		WHERE quantita > 0
+		ORDER BY nome
+	`);
+	response.setHeader('Cache-Control', 'no-store');
+	response.json({ products });
+});
+
+app.post('/api/menu/orders', async (request, response) => {
+	const body = requestBody(request);
+	const nomeCliente = requiredText(body.nome_cliente, 'nome', 100);
+	const metodoPagamento = body.metodo_pagamento;
+	if (!['contanti', 'carta'].includes(metodoPagamento)) {
+		throw new HttpError(400, 'Seleziona un metodo di pagamento valido.');
+	}
+	if (!Array.isArray(body.items) || body.items.length < 1 || body.items.length > 50) {
+		throw new HttpError(400, 'Il carrello deve contenere da 1 a 50 prodotti.');
+	}
+
+	const quantities = new Map();
+	for (const item of body.items) {
+		const productId = numericId(item?.prodotto_id, 'un prodotto');
+		const quantity = numberValue(item?.quantita, 'quantità', { min: 1, max: 99, integer: true });
+		quantities.set(productId, (quantities.get(productId) || 0) + quantity);
+	}
+
+	const connection = await pool.getConnection();
+	try {
+		await connection.beginTransaction();
+		const productIds = [...quantities.keys()];
+		const [products] = await connection.query(
+			' SELECT id, nome, prezzo, quantita FROM prodotti WHERE id IN (?) FOR UPDATE',
+			[productIds],
+		);
+		if (products.length !== productIds.length) {
+			throw new HttpError(409, 'Uno o più prodotti non sono più disponibili. Aggiorna il menu.');
+		}
+
+		let total = 0;
+		for (const product of products) {
+			const quantity = quantities.get(String(product.id));
+			if (product.quantita < quantity) {
+				throw new HttpError(409, `${product.nome}: quantità non più disponibile.`);
+			}
+			total += Number(product.prezzo) * quantity;
+		}
+		total = Number(total.toFixed(2));
+		const [orderResult] = await connection.execute(
+			'INSERT INTO ordini_clienti (nome_cliente, metodo_pagamento, totale) VALUES (?, ?, ?)',
+			[nomeCliente, metodoPagamento, total],
+		);
+		for (const product of products) {
+			const quantity = quantities.get(String(product.id));
+			await connection.execute(
+				'INSERT INTO righe_ordini_clienti (ordine_id, prodotto_id, quantita, prezzo_unitario) VALUES (?, ?, ?, ?)',
+				[orderResult.insertId, product.id, quantity, product.prezzo],
+			);
+			await connection.execute('UPDATE prodotti SET quantita = quantita - ? WHERE id = ?', [quantity, product.id]);
+		}
+		await connection.commit();
+		response.status(201).json({ id: `S-${orderResult.insertId}`, totale: total, message: 'Ordine inviato.' });
+	} catch (error) {
+		await connection.rollback();
+		throw error;
+	} finally {
+		connection.release();
+	}
 });
 
 app.get('/api/auth/session', (request, response) => {
@@ -356,7 +465,7 @@ app.post('/api/auth/logout', requireAdmin, (request, response) => {
 app.get('/api/admin/data', requireAdmin, async (request, response) => {
 	const [[personale], [prodotti], [ordini], [counts]] = await Promise.all([
 		pool.query('SELECT id, nome, cognome, ruolo, email FROM personale ORDER BY cognome, nome'),
-		pool.query('SELECT id, nome, prezzo, quantita FROM prodotti ORDER BY nome'),
+		pool.query('SELECT id, nome, prezzo, quantita, immagine_url FROM prodotti ORDER BY nome'),
 		pool.query(`
 			SELECT o.id, p.nome AS prodotto, CONCAT(s.nome, ' ', s.cognome) AS addetto,
 				o.quantita, o.prezzo_unitario, o.stato, o.creato_il
@@ -397,14 +506,22 @@ app.post('/api/admin/prodotti', requireAdmin, async (request, response) => {
 	const body = requestBody(request);
 	const nome = requiredText(body.nome, 'nome prodotto', 150);
 	const descrizione = optionalText(body.descrizione, 'descrizione', 60000);
+	const immagineUrl = optionalText(body.immagine_url, 'URL immagine', 2048);
+	if (immagineUrl) {
+		try {
+			if (!['http:', 'https:'].includes(new URL(immagineUrl).protocol)) throw new Error();
+		} catch {
+			throw new HttpError(400, 'Inserisci un URL immagine HTTP o HTTPS valido.');
+		}
+	}
 	if (descrizione && Buffer.byteLength(descrizione, 'utf8') > 65535) {
 		throw new HttpError(400, 'La descrizione supera la lunghezza massima consentita.');
 	}
 	const prezzo = numberValue(body.prezzo, 'prezzo', { min: 0, max: 99999999.99 });
 	const quantita = numberValue(body.quantita, 'quantità', { min: 0, max: 4294967295, integer: true });
 	const [result] = await pool.execute(
-		'INSERT INTO prodotti (nome, descrizione, prezzo, quantita) VALUES (?, ?, ?, ?)',
-		[nome, descrizione, Number(prezzo.toFixed(2)), quantita],
+		'INSERT INTO prodotti (nome, descrizione, immagine_url, prezzo, quantita) VALUES (?, ?, ?, ?, ?)',
+		[nome, descrizione, immagineUrl, Number(prezzo.toFixed(2)), quantita],
 	);
 	response.status(201).json({ id: result.insertId, message: 'Prodotto aggiunto.' });
 });
